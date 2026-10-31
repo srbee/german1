@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#172554">
+<title>Deutsch Match – German Vocabulary Trainer</title>
+<style>
+:root{--navy:#172554;--blue:#2563eb;--cyan:#dbeafe;--gold:#f59e0b;--ink:#172033;--muted:#64748b;--paper:#f7f9ff;--white:#fff;--green:#15803d;--red:#b91c1c}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#e0f2fe,#f8fafc 48%,#fef3c7);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);min-height:100vh}
+header{background:var(--navy);color:white;padding:20px 16px 18px;text-align:center}header h1{margin:0;font-size:clamp(25px,6vw,36px);letter-spacing:.3px}header p{margin:5px 0 0;color:#dbeafe;font-size:13px}
+main{max-width:850px;margin:auto;padding:14px 12px 36px}.panel{background:#ffffffed;border:1px solid #dbeafe;border-radius:20px;padding:15px;margin:12px 0;box-shadow:0 8px 24px #1e3a8a12}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:#eff6ff;border-radius:14px;padding:10px;text-align:center}.stat b{display:block;font-size:23px;color:var(--navy)}.stat span{font-size:11px;color:var(--muted)}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}label{font-size:12px;font-weight:700;color:#334155;display:block;margin-bottom:5px}select,button{font:inherit}select{width:100%;border:1px solid #cbd5e1;border-radius:11px;padding:10px;background:white;color:var(--ink)}
+button{border:0;border-radius:12px;padding:11px 13px;font-weight:700;cursor:pointer;transition:transform .08s,filter .15s}button:active{transform:scale(.98)}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--blue);color:white}.secondary{background:#e0e7ff;color:#1e3a8a}.soft{background:#f1f5f9;color:#334155}.gold{background:#fef3c7;color:#854d0e}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.tabs button{flex:1;min-width:105px}.tabs .active{background:var(--navy);color:white}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-bottom:10px}.progress{height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin:7px 0 14px}.progress i{display:block;height:100%;background:linear-gradient(90deg,#2563eb,#06b6d4);width:0;transition:width .2s}
+.gamehead{text-align:center}.gamehead h2{margin:3px 0;font-size:21px;color:var(--navy)}.gamehead p{margin:4px 0 12px;color:var(--muted);font-size:13px}
+.matchgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.matchcol{display:grid;gap:8px}.tile{min-height:65px;border:2px solid #dbeafe;background:white;color:var(--ink);border-radius:13px;padding:10px 8px;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px}.tile .word{font-size:16px;font-weight:800}.tile small{font-size:11px;color:var(--muted);font-weight:500}.tile.selected{border-color:var(--blue);background:#eff6ff}.tile.done{border-color:#86efac;background:#f0fdf4;color:#166534;opacity:.38;filter:grayscale(.35);cursor:default;pointer-events:none}.tile.reject{border-color:#fca5a5;background:#fef2f2;animation:rejectPulse .22s ease-in-out 2}@keyframes rejectPulse{50%{transform:translateX(3px)}}
+.feedback{min-height:25px;text-align:center;font-weight:700;font-size:14px;margin:10px 0}.good{color:var(--green)}.bad{color:var(--red)}
+.actionrow{display:flex;gap:8px;flex-wrap:wrap}.actionrow button{flex:1}
+.cardword{background:linear-gradient(140deg,#eff6ff,#fff7ed);border:1px solid #bfdbfe;border-radius:18px;padding:24px 12px;text-align:center;margin:12px 0}.cardword .de{font-size:34px;font-weight:850;color:var(--navy)}.cardword .pron{font-size:19px;color:#7c3aed;font-weight:750;margin:7px}.cardword .meaning{font-size:18px;font-weight:700}.cardword .extra{font-size:13px;color:var(--muted);margin-top:8px}
+/* Keep the flashcard geometry fixed when its meaning is revealed. */
+.cardword #flashMeaning{display:block;min-height:132px;box-sizing:border-box;visibility:hidden}
+.cardword #flashMeaning:not([hidden]){visibility:visible}
+.cardword #flashMeaning[hidden]{display:block!important;visibility:hidden!important}
+
+
+/* Quick quiz keeps a fixed answer area so revealing the meaning does not shift the page. */
+.quizword{min-height:190px;display:flex;flex-direction:column;justify-content:flex-start}
+.quiz-reveal{height:58px;min-height:58px;margin-top:8px;visibility:hidden;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.quiz-reveal.shown{visibility:visible}
+.quiz-answer{font-size:18px;font-weight:850;color:#166534}
+.quiz-marathi{font-size:15px;font-weight:750;color:#7c3aed}
+.quiz-actions{min-height:44px;margin-top:9px}
+
+/* German pronunciation audio controls */
+.speak-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 10px;border-radius:999px;background:#dbeafe;color:#1e3a8a;font-size:14px;min-height:32px}
+.word-speech{margin-top:8px}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:9px}.options button{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;min-height:54px}.options button.correct{background:#dcfce7;border-color:#86efac;color:#166534}.options button.incorrect{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+.note{font-size:12px;color:var(--muted);line-height:1.5}.detail-card{min-height:190px;box-sizing:border-box;margin-top:8px;padding:14px;border-radius:15px;background:linear-gradient(135deg,#eff6ff,#fdf2f8 55%,#fef3c7);border:1px solid #c7d2fe;font-size:16px;line-height:1.65;color:#26345c}.detail-card .detail-word{font-size:23px;font-weight:850;color:#1d4ed8}.detail-card .detail-pron{font-size:19px;font-weight:800;color:#7c3aed}.detail-card .detail-label{font-weight:800;color:#be123c}.detail-card .detail-example{color:#166534;font-style:italic;font-weight:650}.footer{text-align:center;color:#64748b;font-size:11px;padding:10px}
+@media(max-width:420px){main{padding:10px 9px 28px}.panel{padding:12px}.tile{min-height:59px}.tile .word{font-size:14px}.controls{gap:8px}.stats{gap:6px}}
+</style>
+</head>
+<body>
+<header><h1>🇩🇪 Deutsch Match</h1><p>German vocabulary · मराठी उच्चार · English · मराठी</p></header>
+<main>
+<section class="panel">
+ <div class="stats">
+  <div class="stat"><b id="learned">0</b><span>Words practised</span></div>
+  <div class="stat"><b id="correct">0</b><span>Correct matches</span></div>
+  <div class="stat"><b id="due">0</b><span>Review queue</span></div>
+ </div>
+</section>
+<section class="panel">
+ <div class="controls">
+  <div><label for="level">LEVEL</label><select id="level"><option value="all">A1–B1 · All</option><option>A1</option><option>A2</option><option>B1</option></select></div>
+  <div><label for="meaning">MATCH WITH</label><select id="meaning"><option value="en">English meaning</option><option value="mr">Marathi meaning</option></select></div>
+  <div><label for="selection">WORD SELECTION</label><select id="selection"><option value="adaptive">Intelligent mix</option><option value="random">Random</option><option value="theme">Thematic</option></select></div>
+  <div><label for="theme">THEME</label><select id="theme"><option value="all">All themes</option></select></div>
+ </div>
+ <p class="note" style="margin-bottom:0">Each round has 10 pairs: new words are mixed with words due for revision. The app remembers your results on this device.</p>
+</section>
+<section class="panel">
+ <div class="tabs">
+  <button class="active" data-mode="match">Matching</button><button class="secondary" data-mode="flash">Flashcards</button><button class="secondary" data-mode="quiz">Quick quiz</button>
+ </div>
+ <div class="topline"><span id="roundLabel">Round 1</span><span id="scoreLabel">0 / 10 pairs</span></div>
+ <div class="progress"><i id="bar"></i></div>
+ <div id="game"></div>
+ <div class="feedback" id="feedback" aria-live="polite"></div>
+ <div class="actionrow"><button class="primary" id="next">Next round ↻</button><button class="soft" id="reset">Reset progress</button></div>
+</section>
+<section class="panel">
+ <b>Word details</b>
+ <div id="detail" class="detail-card">Select a German word to see its learning notes.</div>
+</section>
+<div class="footer">Progress is stored locally in this browser using localStorage. No account or internet connection is required after the file is opened.</div>
+</main>
+<script>
+const WORDS = [
+["das Haus","दास हाउस","house","घर","Häuser","A1","Home","Das Haus ist groß."],
+["die Wohnung","डी वोनुंग","apartment","फ्लॅट / निवास","Wohnungen","A1","Home","Meine Wohnung ist klein."],
+["die Tür","डी ट्यूअर","door","दरवाजा","Türen","A1","Home","Die Tür ist offen."],
+["das Fenster","दास फेन्स्टर","window","खिडकी","Fenster","A1","Home","Das Fenster ist geschlossen."],
+["der Tisch","डेअर टिश","table","टेबल","Tische","A1","Home","Der Tisch ist neu."],
+["der Stuhl","डेअर श्टूल","chair","खुर्ची","Stühle","A1","Home","Der Stuhl ist bequem."],
+["das Bett","दास बेट","bed","बिछाना","Betten","A1","Home","Das Bett ist weich."],
+["die Lampe","डी लाम्पे","lamp","दिवा","Lampen","A1","Home","Die Lampe ist hell."],
+["der Schlüssel","डेअर श्ल्युसल","key","किल्ली","Schlüssel","A1","Home","Wo ist mein Schlüssel?"],
+["die Küche","डी क्यूखे","kitchen","स्वयंपाकघर","Küchen","A1","Home","Die Küche ist sauber."],
+["das Wasser","दास वासर","water","पाणी","—","A1","Food","Ich trinke Wasser."],
+["das Brot","दास ब्रोत","bread","पाव / भाकरी","Brote","A1","Food","Das Brot ist frisch."],
+["der Apfel","डेअर आप्फेल","apple","सफरचंद","Äpfel","A1","Food","Der Apfel ist rot."],
+["die Milch","डी मिल्ख","milk","दूध","—","A1","Food","Die Milch ist kalt."],
+["der Kaffee","डेअर काफे","coffee","कॉफी","Kaffees","A1","Food","Ich trinke Kaffee."],
+["der Tee","डेअर टे","tea","चहा","Tees","A1","Food","Möchtest du Tee?"],
+["das Ei","दास आय","egg","अंडे","Eier","A1","Food","Das Ei ist frisch."],
+["der Käse","डेअर केझे","cheese","चीज","Käse","A1","Food","Der Käse schmeckt gut."],
+["die Banane","डी बानाने","banana","केळे","Bananen","A1","Food","Die Banane ist gelb."],
+["der Reis","डेअर राइस","rice","तांदूळ / भात","—","A1","Food","Wir essen Reis."],
+["der Mann","डेअर मान","man","पुरुष","Männer","A1","People","Der Mann ist freundlich."],
+["die Frau","डी फ्राउ","woman","स्त्री","Frauen","A1","People","Die Frau arbeitet hier."],
+["das Kind","दास किंट","child","मूल","Kinder","A1","People","Das Kind spielt."],
+["die Familie","डी फामिलिये","family","कुटुंब","Familien","A1","People","Meine Familie ist groß."],
+["der Freund","डेअर फ्रॉइंट","friend (male)","मित्र","Freunde","A1","People","Mein Freund kommt heute."],
+["die Freundin","डी फ्रॉइंडिन","friend (female)","मैत्रीण","Freundinnen","A1","People","Meine Freundin lernt Deutsch."],
+["der Name","डेअर नाहमे","name","नाव","Namen","A1","People","Wie ist dein Name?"],
+["der Tag","डेअर टाक","day","दिवस","Tage","A1","Time","Heute ist ein schöner Tag."],
+["die Nacht","डी नाख्ट","night","रात्र","Nächte","A1","Time","Gute Nacht!"],
+["der Morgen","डेअर मॉर्गन","morning","सकाळ","Morgen","A1","Time","Am Morgen trinke ich Tee."],
+["heute","हॉइटे","today","आज","—","A1","Time","Heute lerne ich Deutsch."],
+["morgen","मॉर्गन","tomorrow","उद्या","—","A1","Time","Morgen habe ich Zeit."],
+["gestern","गेस्टर्न","yesterday","काल","—","A1","Time","Gestern war ich zu Hause."],
+["die Zeit","डी त्साइट","time","वेळ","Zeiten","A1","Time","Ich habe keine Zeit."],
+["das Jahr","दास यार","year","वर्ष","Jahre","A1","Time","Ein Jahr hat zwölf Monate."],
+["gehen","गेएन","to go / walk","जाणे","ging, ist gegangen","A1","Verbs","Wir gehen nach Hause."],
+["kommen","कॉमन","to come","येणे","kam, ist gekommen","A1","Verbs","Er kommt heute."],
+["machen","माखेन","to do / make","करणे / बनवणे","machte, hat gemacht","A1","Verbs","Was machst du?"],
+["lernen","लेर्नेन","to learn","शिकणे","lernte, hat gelernt","A1","Verbs","Ich lerne Deutsch."],
+["sprechen","श्प्रेखेन","to speak","बोलणे","sprach, hat gesprochen","A1","Verbs","Sie spricht Deutsch."],
+["lesen","लेझेन","to read","वाचणे","las, hat gelesen","A1","Verbs","Ich lese ein Buch."],
+["schreiben","श्राइबेन","to write","लिहिणे","schrieb, hat geschrieben","A1","Verbs","Er schreibt einen Brief."],
+["essen","एसन","to eat","खाणे","aß, hat gegessen","A1","Verbs","Wir essen zusammen."],
+["trinken","ट्रिंकन","to drink","पिणे","trank, hat getrunken","A1","Verbs","Ich trinke Wasser."],
+["arbeiten","आर्बाइटेन","to work","काम करणे","arbeitete, hat gearbeitet","A1","Verbs","Sie arbeitet heute."],
+["die Schule","डी शूले","school","शाळा","Schulen","A1","Study","Die Schule beginnt um acht."],
+["das Buch","दास बूख","book","पुस्तक","Bücher","A1","Study","Das Buch ist interessant."],
+["die Sprache","डी श्प्राखे","language","भाषा","Sprachen","A2","Study","Deutsch ist eine Sprache."],
+["die Frage","डी फ्रागे","question","प्रश्न","Fragen","A1","Study","Ich habe eine Frage."],
+["die Antwort","डी आंटवोर्ट","answer","उत्तर","Antworten","A1","Study","Die Antwort ist richtig."],
+["verstehen","फेअरश्टेएन","to understand","समजणे","verstand, hat verstanden","A2","Verbs","Ich verstehe die Frage."],
+["vergessen","फेअरगेसन","to forget","विसरणे","vergaß, hat vergessen","A2","Verbs","Ich vergesse den Namen."],
+["erklären","एअरक्लेरेन","to explain","समजावून सांगणे","erklärte, hat erklärt","A2","Verbs","Kannst du das erklären?"],
+["die Rechnung","डी रेखनुंग","bill / invoice","बिल","Rechnungen","A2","Everyday","Die Rechnung ist richtig."],
+["die Zeitung","डी त्साइटुंग","newspaper","वर्तमानपत्र","Zeitungen","A2","Everyday","Ich lese die Zeitung."],
+["der Bahnhof","डेअर बानहॉफ","railway station","रेल्वे स्थानक","Bahnhöfe","A1","Travel","Wo ist der Bahnhof?"],
+["der Zug","डेअर त्सूक","train","आगगाडी","Züge","A1","Travel","Der Zug kommt pünktlich."],
+["die Reise","डी राइझे","journey / trip","प्रवास","Reisen","A2","Travel","Die Reise war schön."],
+["die Straße","डी श्ट्रासे","street / road","रस्ता","Straßen","A1","Travel","Die Straße ist lang."],
+["das Fahrrad","दास फार्रात","bicycle","सायकल","Fahrräder","A1","Travel","Ich fahre mit dem Fahrrad."],
+["die Gesundheit","डी गेझुंटहाइट","health","आरोग्य","—","A2","Body","Gesundheit ist wichtig."],
+["der Körper","डेअर कॉर्पर","body","शरीर","Körper","A2","Body","Der Körper braucht Ruhe."],
+["der Kopf","डेअर कॉप्फ","head","डोके","Köpfe","A1","Body","Mein Kopf tut weh."],
+["das Herz","दास हेर्ৎস","heart","हृदय","Herzen","A2","Body","Das Herz schlägt schnell."],
+["die Umwelt","डी उम्वेल्ट","environment","पर्यावरण","—","B1","Nature","Wir schützen die Umwelt."],
+["die Pflanze","डी फ्लान्ट्से","plant","वनस्पती","Pflanzen","A2","Nature","Die Pflanze braucht Wasser."],
+["der Baum","डेअर बाउम","tree","झाड","Bäume","A1","Nature","Der Baum ist sehr alt."],
+["die Blume","डी ब्लूमे","flower","फूल","Blumen","A1","Nature","Die Blume ist schön."],
+["das Wetter","दास वेटर","weather","हवामान","—","A1","Nature","Das Wetter ist heute gut."],
+["die Erfahrung","डी एर्फारुंग","experience","अनुभव","Erfahrungen","B1","Ideas","Das war eine gute Erfahrung."],
+["die Möglichkeit","डी म्योक्लिश्काइट","possibility","शक्यता","Möglichkeiten","B1","Ideas","Es gibt eine Möglichkeit."],
+["die Entscheidung","डी एंट्शाइडुंग","decision","निर्णय","Entscheidungen","B1","Ideas","Das ist eine wichtige Entscheidung."],
+["wahrscheinlich","वाह्रशाइनलिश","probably","बहुधा / शक्यतो","—","B1","Ideas","Er kommt wahrscheinlich später."],
+["trotzdem","ट्रॉट्सडेम","nevertheless","तरीसुद्धा","—","B1","Ideas","Es regnet, trotzdem gehen wir."],
+["deshalb","डेसहॅल्ब","therefore","म्हणून","—","B1","Ideas","Ich bin müde, deshalb schlafe ich."],
+["die Wissenschaft","डी विसनशाफ्ट","science","विज्ञान","Wissenschaften","B1","Science","Wissenschaft verändert die Welt."],
+["die Forschung","डी फॉर्शुंग","research","संशोधन","Forschungen","B1","Science","Die Forschung ist wichtig."],
+["die Energie","डी एनेर्गी","energy","ऊर्जा","Energien","B1","Science","Energie kann gespeichert werden."],
+["der Strom","डेअर श्ट्रोम","electric current / electricity","विद्युत प्रवाह / वीज","Ströme","B1","Science","Der Strom fließt durch den Draht."],
+["die Spannung","डी श्पानुंग","voltage","विद्युत दाब","Spannungen","B1","Science","Die Spannung beträgt zwölf Volt."],
+["der Widerstand","डेअर वीडरश्टांड","resistance","विद्युत रोध","Widerstände","B1","Science","Der Widerstand ist zu groß."],
+["die Antenne","डी आंटेने","antenna","अँटेना","Antennen","B1","Science","Die Antenne empfängt das Signal."],
+["das Signal","दास झिग्नाल","signal","संकेत","Signale","B1","Science","Das Signal ist schwach."],
+["die Welle","डी वेले","wave","लहर / तरंग","Wellen","B1","Science","Die Welle breitet sich aus."],
+["der Empfänger","डेअर एम्फेंगर","receiver","ग्राहक / रिसीव्हर","Empfänger","B1","Science","Der Empfänger arbeitet gut."],
+["sich erinnern","झिश एरिनर्न","to remember","आठवणे","erinnerte sich, hat sich erinnert","B1","Verbs","Ich erinnere mich an das Wort."],
+["sich entscheiden","झिश एंट्शाइडेन","to decide","निर्णय घेणे","entschied sich, hat sich entschieden","B1","Verbs","Wir müssen uns entscheiden."],
+["verbessern","फेअरबेसर्न","to improve","सुधारणे","verbesserte, hat verbessert","B1","Verbs","Ich möchte mein Deutsch verbessern."]
+,
+["das Zimmer", "दास त्सिमर", "room", "खोली", "Zimmer", "A1", "Home", "Mein Zimmer ist hell."],
+["das Bad", "दास बाट", "bathroom", "स्नानगृह", "Bäder", "A1", "Home", "Das Bad ist klein."],
+["der Schrank", "डेअर श्रांक", "cupboard", "कपाट", "Schränke", "A1", "Home", "Die Kleidung ist im Schrank."],
+["die Tasche", "डी टाशे", "bag", "पिशवी", "Taschen", "A1", "Home", "Meine Tasche ist schwer."],
+["das Handy", "दास हॅन्डी", "mobile phone", "मोबाइल फोन", "Handys", "A1", "Daily life", "Mein Handy ist neu."],
+["der Computer", "डेअर कॉम्प्युटर", "computer", "संगणक", "Computer", "A1", "Daily life", "Der Computer ist schnell."],
+["der Brief", "डेअर ब्रीफ", "letter", "पत्र", "Briefe", "A1", "Daily life", "Der Brief kommt morgen."],
+["die Uhr", "डी ऊर", "clock / watch", "घड्याळ", "Uhren", "A1", "Daily life", "Wie spät ist es?"],
+["das Geld", "दास गेल्ट", "money", "पैसे", "—", "A1", "Daily life", "Ich brauche Geld."],
+["der Preis", "डेअर प्राइस", "price", "किंमत", "Preise", "A1", "Shopping", "Der Preis ist günstig."],
+["die Größe", "डी ग्रोसे", "size", "आकार", "Größen", "A2", "Shopping", "Welche Größe brauchen Sie?"],
+["die Farbe", "डी फार्बे", "colour", "रंग", "Farben", "A1", "Shopping", "Meine Lieblingsfarbe ist Blau."],
+["das Geschäft", "दास गेशेफ्ट", "shop / business", "दुकान / व्यवसाय", "Geschäfte", "A1", "Shopping", "Das Geschäft ist geöffnet."],
+["der Markt", "डेअर मार्क्ट", "market", "बाजार", "Märkte", "A1", "Shopping", "Wir gehen auf den Markt."],
+["kaufen", "काउफन", "to buy", "खरेदी करणे", "kaufte, hat gekauft", "A1", "Verbs", "Ich kaufe Brot."],
+["verkaufen", "फेअरकाउफन", "to sell", "विकणे", "verkaufte, hat verkauft", "A2", "Verbs", "Sie verkauft ihr Fahrrad."],
+["bezahlen", "बेत्सालन", "to pay", "पैसे देणे", "bezahlte, hat bezahlt", "A1", "Verbs", "Ich bezahle bar."],
+["kosten", "कॉस्टन", "to cost", "किंमत असणे", "kostete, hat gekostet", "A1", "Verbs", "Wie viel kostet das?"],
+["suchen", "जूखन", "to search / look for", "शोधणे", "suchte, hat gesucht", "A1", "Verbs", "Ich suche meinen Schlüssel."],
+["finden", "फिंडन", "to find", "शोधून मिळणे", "fand, hat gefunden", "A1", "Verbs", "Ich finde den Weg."],
+["brauchen", "ब्राउखन", "to need", "गरज असणे", "brauchte, hat gebraucht", "A1", "Verbs", "Wir brauchen mehr Zeit."],
+["warten", "वार्टन", "to wait", "वाट पाहणे", "wartete, hat gewartet", "A1", "Verbs", "Ich warte auf den Bus."],
+["helfen", "हेल्फन", "to help", "मदत करणे", "half, hat geholfen", "A1", "Verbs", "Kannst du mir helfen?"],
+["fragen", "फ्रागन", "to ask", "विचारणे", "fragte, hat gefragt", "A1", "Verbs", "Darf ich etwas fragen?"],
+["antworten", "आंटवॉर्टन", "to answer", "उत्तर देणे", "antwortete, hat geantwortet", "A1", "Verbs", "Bitte antworten Sie."],
+["üben", "युबन", "to practise", "सराव करणे", "übte, hat geübt", "A1", "Verbs", "Wir üben jeden Tag."],
+["beginnen", "बेगिनन", "to begin", "सुरू करणे", "begann, hat begonnen", "A2", "Verbs", "Der Film beginnt um acht."],
+["enden", "एन्डन", "to end", "संपणे", "endete, hat geendet", "A1", "Verbs", "Der Kurs endet heute."],
+["öffnen", "ऑफ्नन", "to open", "उघडणे", "öffnete, hat geöffnet", "A1", "Verbs", "Bitte öffnen Sie das Fenster."],
+["schließen", "श्लीसन", "to close", "बंद करणे", "schloss, hat geschlossen", "A1", "Verbs", "Bitte schließen Sie die Tür."],
+["fahren", "फारन", "to travel / drive", "प्रवास करणे / वाहन चालवणे", "fuhr, ist gefahren", "A1", "Verbs", "Wir fahren nach Berlin."],
+["fliegen", "फ्लीगन", "to fly", "उडणे", "flog, ist geflogen", "A2", "Verbs", "Das Flugzeug fliegt nach Delhi."],
+["ankommen", "आन्कोमन", "to arrive", "पोहोचणे", "kam an, ist angekommen", "A2", "Verbs", "Der Zug kommt pünktlich an."],
+["abfahren", "आपफारन", "to depart", "निघणे", "fuhr ab, ist abgefahren", "A2", "Verbs", "Der Bus fährt um neun ab."],
+["einsteigen", "आइनश्टाइगन", "to get in / board", "बसणे / चढणे", "stieg ein, ist eingestiegen", "A2", "Verbs", "Wir steigen hier ein."],
+["aussteigen", "आउसश्टाइगन", "to get out", "उतरणे", "stieg aus, ist ausgestiegen", "A2", "Verbs", "Bitte hier aussteigen."],
+["der Flughafen", "डेअर फ्लूगहाफन", "airport", "विमानतळ", "Flughäfen", "A1", "Travel", "Wir fahren zum Flughafen."],
+["die Fahrkarte", "डी फारकार्टे", "ticket", "तिकीट", "Fahrkarten", "A1", "Travel", "Ich kaufe eine Fahrkarte."],
+["die Haltestelle", "डी हाल्टेश्टेले", "stop / station", "थांबा", "Haltestellen", "A1", "Travel", "Die Haltestelle ist dort."],
+["die Kreuzung", "डी क्रॉयत्सुंग", "intersection", "चौक", "Kreuzungen", "A2", "Travel", "An der Kreuzung links."],
+["geradeaus", "गेराडेआउस", "straight ahead", "सरळ पुढे", "—", "A1", "Travel", "Gehen Sie geradeaus."],
+["links", "लिंक्स", "left", "डावीकडे", "—", "A1", "Travel", "Biegen Sie links ab."],
+["rechts", "रेख्ट्स", "right", "उजवीकडे", "—", "A1", "Travel", "Die Bank ist rechts."],
+["der Arzt", "डेअर आर्त्स्ट", "doctor", "डॉक्टर", "Ärzte", "A1", "Health", "Der Arzt kommt heute."],
+["die Apotheke", "डी अपोथेके", "pharmacy", "औषधालय", "Apotheken", "A1", "Health", "Die Apotheke ist geöffnet."],
+["das Medikament", "दास मेडिकामेंट", "medicine", "औषध", "Medikamente", "A2", "Health", "Nehmen Sie das Medikament."],
+["der Schmerz", "डेअर श्मेर्त्स", "pain", "वेदना", "Schmerzen", "A2", "Health", "Ich habe Kopfschmerzen."],
+["müde", "म्युडे", "tired", "थकलेला", "—", "A1", "Adjectives", "Ich bin heute müde."],
+["krank", "क्रांक", "ill", "आजारी", "—", "A1", "Adjectives", "Das Kind ist krank."],
+["gesund", "गेझुंट", "healthy", "निरोगी", "—", "A1", "Adjectives", "Obst ist gesund."],
+["hungrig", "हुंग्रिख", "hungry", "भुकेलेला", "—", "A1", "Adjectives", "Ich bin hungrig."],
+["durstig", "दुर्स्टिख", "thirsty", "तहानलेला", "—", "A1", "Adjectives", "Nach dem Sport bin ich durstig."],
+["wichtig", "विख्टिख", "important", "महत्त्वाचा", "—", "A1", "Adjectives", "Deutsch ist wichtig."],
+["möglich", "म्युखलिख", "possible", "शक्य", "—", "A2", "Adjectives", "Ist das möglich?"],
+["schwierig", "श्वीरीख", "difficult", "कठीण", "—", "A1", "Adjectives", "Die Aufgabe ist schwierig."],
+["einfach", "आइनफाख", "easy / simple", "सोपे", "—", "A1", "Adjectives", "Die Frage ist einfach."],
+["teuer", "टॉयर", "expensive", "महाग", "—", "A1", "Adjectives", "Das Auto ist teuer."],
+["billig", "बिलिख", "cheap", "स्वस्त", "—", "A1", "Adjectives", "Das ist sehr billig."],
+["schnell", "श्नेल", "fast", "जलद", "—", "A1", "Adjectives", "Der Zug ist schnell."],
+["langsam", "लांगझाम", "slow", "मंद", "—", "A1", "Adjectives", "Bitte sprechen Sie langsam."],
+["freundlich", "फ्रॉइंटलिख", "friendly", "मैत्रीपूर्ण", "—", "A1", "Adjectives", "Die Nachbarn sind freundlich."],
+["pünktlich", "प्युंक्टलिख", "punctual", "वेळेवर", "—", "A2", "Adjectives", "Der Bus ist pünktlich."],
+["vielleicht", "फीलायख्ट", "perhaps", "कदाचित", "—", "A1", "Everyday", "Vielleicht kommt er morgen."],
+["zusammen", "त्सुझामन", "together", "एकत्र", "—", "A1", "Everyday", "Wir lernen zusammen."],
+["allein", "अलायन", "alone", "एकटा", "—", "A1", "Everyday", "Sie wohnt allein."],
+["manchmal", "मान्खमाल", "sometimes", "कधीकधी", "—", "A1", "Everyday", "Manchmal lese ich abends."],
+["immer", "इमर", "always", "नेहमी", "—", "A1", "Everyday", "Er kommt immer pünktlich."],
+["nie", "नी", "never", "कधीच नाही", "—", "A1", "Everyday", "Ich trinke nie Kaffee."],
+["oft", "ऑफ्ट", "often", "अनेकदा", "—", "A1", "Everyday", "Wir gehen oft spazieren."],
+["bald", "बाल्ट", "soon", "लवकरच", "—", "A1", "Everyday", "Bis bald!"],
+["übermorgen", "युबरमोर्गन", "the day after tomorrow", "परवा", "—", "A2", "Time", "Übermorgen fahren wir weg."],
+["die Woche", "डी वोखे", "week", "आठवडा", "Wochen", "A1", "Time", "Eine Woche hat sieben Tage."],
+["der Monat", "डेअर मोनाट", "month", "महिना", "Monate", "A1", "Time", "Der Monat ist fast vorbei."],
+["der Frühling", "डेअर फ्र्युलिंग", "spring", "वसंत ऋतू", "Frühlinge", "A2", "Time", "Im Frühling blühen die Blumen."],
+["der Sommer", "डेअर झोमर", "summer", "उन्हाळा", "Sommer", "A1", "Time", "Im Sommer ist es warm."],
+["der Herbst", "डेअर हेर्बस्ट", "autumn", "शरद ऋतू", "Herbste", "A1", "Time", "Im Herbst fallen die Blätter."],
+["der Winter", "डेअर विन्टर", "winter", "हिवाळा", "Winter", "A1", "Time", "Im Winter ist es kalt."],
+["die Eltern", "डी एल्टर्न", "parents", "आई-वडील", "—", "A1", "People", "Meine Eltern wohnen hier."],
+["der Bruder", "डेअर ब्रूडर", "brother", "भाऊ", "Brüder", "A1", "People", "Mein Bruder ist älter."],
+["die Schwester", "डी श्वेस्टर", "sister", "बहीण", "Schwestern", "A1", "People", "Meine Schwester studiert."],
+["der Nachbar", "डेअर नाखबार", "neighbour", "शेजारी", "Nachbarn", "A1", "People", "Unser Nachbar ist nett."],
+["die Kollegin", "डी कोलेगिन", "female colleague", "सहकारी", "Kolleginnen", "A2", "People", "Meine Kollegin hilft mir."],
+["die Einladung", "डी आइनलाडुंग", "invitation", "आमंत्रण", "Einladungen", "A2", "Social", "Danke für die Einladung."],
+["das Gespräch", "दास गेश्प्रेख", "conversation", "संभाषण", "Gespräche", "B1", "Social", "Das Gespräch war interessant."],
+["die Meinung", "डी मायनुंग", "opinion", "मत", "Meinungen", "B1", "Social", "Das ist meine Meinung."],
+["zustimmen", "त्सुश्टिमन", "to agree", "सहमत होणे", "stimmte zu, hat zugestimmt", "B1", "Verbs", "Ich stimme dir zu."],
+["ablehnen", "आपलेनन", "to reject", "नकार देणे", "lehnte ab, hat abgelehnt", "B1", "Verbs", "Er lehnt das Angebot ab."],
+["die Batterie", "डी बॅटेरी", "battery", "विद्युत घट", "Batterien", "A2", "Science", "Die Batterie ist leer."],
+["der Stromkreis", "डेअर श्ट्रोमक्राइस", "electric circuit", "विद्युत परिपथ", "Stromkreise", "B1", "Science", "Der Stromkreis ist geschlossen."],
+["die Frequenz", "डी फ्रेक्वेन्त्स", "frequency", "वारंवारता", "Frequenzen", "B1", "Science", "Die Frequenz beträgt sieben Megahertz."],
+["die Leistung", "डी लायस्टुंग", "power / performance", "शक्ती / कार्यक्षमता", "Leistungen", "B1", "Science", "Die Leistung beträgt hundert Watt."],
+["spielen", "श्पईलएन", "to play", "खेळणे", "—", "A1", "Everyday", "Ich möchte spielen."],
+["wohnen", "वओहनएन", "to live/reside", "राहणे", "—", "A1", "Home", "Ich möchte wohnen."],
+["leben", "लएबएन", "to live", "जगणे", "—", "A1", "Everyday", "Ich möchte leben."],
+["reisen", "रआयज़एन", "to travel", "प्रवास करणे", "—", "A1", "Travel", "Ich möchte reisen."],
+["sehen", "ज़एहएन", "to see", "पाहणे", "—", "A1", "Everyday", "Ich möchte sehen."],
+["hören", "हओरएन", "to hear/listen", "ऐकणे", "—", "A1", "Everyday", "Ich möchte hören."],
+["rechnen", "रएखनएन", "to calculate", "गणित करणे", "—", "A1", "Education", "Ich möchte rechnen."],
+["wissen", "वइज़ज़एन", "to know (a fact)", "माहित असणे", "—", "A1", "Language", "Ich möchte wissen."],
+["kennen", "कएननएन", "to know/be familiar with", "ओळखणे", "—", "A1", "Language", "Ich möchte kennen."],
+["denken", "डएनकएन", "to think", "विचार करणे", "—", "A2", "Mind", "Ich möchte denken."],
+["glauben", "गलआउबएन", "to believe", "विश्वास ठेवणे", "—", "A2", "Mind", "Ich möchte glauben."],
+["hoffen", "हओफफएन", "to hope", "आशा करणे", "—", "A2", "Mind", "Ich möchte hoffen."],
+["wünschen", "वयूनशएन", "to wish", "इच्छा करणे", "—", "A2", "Mind", "Ich möchte wünschen."],
+["lieben", "लईबएन", "to love", "प्रेम करणे", "—", "A1", "People", "Ich möchte lieben."],
+["mögen", "मओगएन", "to like", "आवडणे", "—", "A1", "People", "Ich möchte mögen."],
+["bestellen", "बएश्टएललएन", "to order", "मागवणे", "—", "A2", "Food", "Ich möchte bestellen."],
+["zeigen", "त्सआयगएन", "to show", "दाखवणे", "—", "A1", "Everyday", "Ich möchte zeigen."],
+["geben", "गएबएन", "to give", "देणे", "—", "A1", "Everyday", "Ich möchte geben."],
+["nehmen", "नएहमएन", "to take", "घेणे", "—", "A1", "Everyday", "Ich möchte nehmen."],
+["bringen", "बरइनगएन", "to bring", "आणणे", "—", "A1", "Everyday", "Ich möchte bringen."],
+["holen", "हओलएन", "to fetch", "घेऊन येणे", "—", "A2", "Everyday", "Ich möchte holen."],
+["tragen", "टरआगएन", "to carry/wear", "वाहून नेणे / घालणे", "—", "A2", "Everyday", "Ich möchte tragen."],
+["waschen", "वआशएन", "to wash", "धुणे", "—", "A1", "Home", "Ich möchte waschen."],
+["putzen", "पउत्सएन", "to clean", "स्वच्छ करणे", "—", "A1", "Home", "Ich möchte putzen."],
+["kochen", "कओखएन", "to cook", "स्वयंपाक करणे", "—", "A1", "Food", "Ich möchte kochen."],
+["backen", "बआकएन", "to bake", "भाजणे", "—", "A2", "Food", "Ich möchte backen."],
+["schlafen", "शलआफएन", "to sleep", "झोपणे", "—", "A1", "Health", "Ich möchte schlafen."],
+["aufstehen", "आउफश्टएहएन", "to get up", "उठणे", "—", "A1", "Daily routine", "Ich möchte aufstehen."],
+["sitzen", "ज़इत्सएन", "to sit", "बसणे", "—", "A1", "Everyday", "Ich möchte sitzen."],
+["stehen", "श्टएहएन", "to stand", "उभे राहणे", "—", "A1", "Everyday", "Ich möchte stehen."],
+["liegen", "लईगएन", "to lie/be situated", "पडून असणे", "—", "A2", "Everyday", "Ich möchte liegen."],
+["laufen", "लआउफएन", "to run", "धावणे", "—", "A1", "Sport", "Ich möchte laufen."],
+["schwimmen", "शवइममएन", "to swim", "पोहणे", "—", "A1", "Sport", "Ich möchte schwimmen."],
+["tanzen", "टआनत्सएन", "to dance", "नाचणे", "—", "A1", "Culture", "Ich möchte tanzen."],
+["singen", "ज़इनगएन", "to sing", "गाणे", "—", "A1", "Culture", "Ich möchte singen."],
+["lachen", "लआखएन", "to laugh", "हसणे", "—", "A1", "People", "Ich möchte lachen."],
+["weinen", "वआयनएन", "to cry", "रडणे", "—", "A1", "People", "Ich möchte weinen."],
+["rufen", "रउफएन", "to call/shout", "हाक मारणे", "—", "A2", "Language", "Ich möchte rufen."],
+["telefonieren", "टएलएफओनईरएन", "to telephone", "फोन करणे", "—", "A1", "Communication", "Ich möchte telefonieren."],
+["umsteigen", "उमश्टआयगएन", "to change trains", "गाडी बदलणे", "—", "A2", "Travel", "Ich möchte umsteigen."],
+["erinnern", "एरइननएरन", "to remember", "आठवणे", "—", "A2", "Mind", "Ich möchte erinnern."],
+["verlieren", "फएरलईरएन", "to lose", "हरवणे", "—", "A2", "Everyday", "Ich möchte verlieren."],
+["gewinnen", "गएवइननएन", "to win", "जिंकणे", "—", "A2", "Sport", "Ich möchte gewinnen."],
+["schicken", "शइकएन", "to send", "पाठवणे", "—", "A2", "Communication", "Ich möchte schicken."],
+["bekommen", "बएकओममएन", "to receive", "get मिळणे", "—", "A1", "Everyday", "Ich möchte bekommen."],
+["erzählen", "एरत्सएहलएन", "to tell/narrate", "सांगणे", "—", "A2", "Communication", "Ich möchte erzählen."],
+["beschreiben", "बएशरआयबएन", "to describe", "वर्णन करणे", "—", "A2", "Language", "Ich möchte beschreiben."],
+["entscheiden", "एनटशआयडएन", "to decide", "निर्णय घेणे", "—", "B1", "Mind", "Ich möchte entscheiden."],
+["versuchen", "फएरज़उखएन", "to try", "प्रयत्न करणे", "—", "A2", "Everyday", "Ich möchte versuchen."],
+["planen", "पलआनएन", "to plan", "नियोजन करणे", "—", "A2", "Work", "Ich möchte planen."],
+["ändern", "एनडएरन", "to change", "बदलणे", "—", "A2", "Everyday", "Ich möchte ändern."],
+["entwickeln", "एनटवइकएलन", "to develop", "विकसित करणे", "—", "B1", "Science", "Ich möchte entwickeln."],
+["benutzen", "बएनउत्सएन", "to use", "वापरणे", "—", "A1", "Everyday", "Ich möchte benutzen."],
+["verwenden", "फएरवएनडएन", "to use/apply", "उपयोग करणे", "—", "A2", "Work", "Ich möchte verwenden."],
+["bauen", "बआउएन", "to build", "बांधणे", "—", "A2", "Work", "Ich möchte bauen."],
+["reparieren", "रएपआरईरएन", "to repair", "दुरुस्ती करणे", "—", "A2", "Technology", "Ich möchte reparieren."],
+["messen", "मएज़ज़एन", "to measure", "मोजणे", "—", "A2", "Science", "Ich möchte messen."],
+["prüfen", "परयूफएन", "to check/test", "तपासणे", "—", "A2", "Education", "Ich möchte prüfen."],
+["vergleichen", "फएरगलआयखएन", "to compare", "तुलना करणे", "—", "B1", "Education", "Ich möchte vergleichen."],
+["erreichen", "एररआयखएन", "to reach/achieve", "गाठणे / साध्य करणे", "—", "B1", "Work", "Ich möchte erreichen."],
+["erlauben", "एरलआउबएन", "to allow", "परवानगी देणे", "—", "B1", "Everyday", "Ich möchte erlauben."],
+["verbieten", "फएरबईटएन", "to forbid", "मनाई करणे", "—", "B1", "Everyday", "Ich möchte verbieten."],
+["passieren", "पआज़ज़ईरएन", "to happen", "घडणे", "—", "A2", "Everyday", "Ich möchte passieren."],
+["fehlen", "फएहलएन", "to be missing", "नसणे / उणीव असणे", "—", "A2", "Everyday", "Ich möchte fehlen."],
+["gehören", "गएहओरएन", "to belong", "मालकीचे असणे", "—", "A2", "People", "Ich möchte gehören."],
+["gefallen", "गएफआललएन", "to please/like", "आवडणे", "—", "A2", "People", "Ich möchte gefallen."],
+["treffen", "टरएफफएन", "to meet", "भेटणे", "—", "A1", "People", "Ich möchte treffen."],
+["besuchen", "बएज़उखएन", "to visit", "भेट देणे", "—", "A1", "Travel", "Ich möchte besuchen."],
+["einladen", "आयनलआडएन", "to invite", "आमंत्रित करणे", "—", "A2", "People", "Ich möchte einladen."],
+["feiern", "फआयएरन", "to celebrate", "साजरे करणे", "—", "A1", "Culture", "Ich möchte feiern."],
+["heiraten", "हआयरआटएन", "to marry", "लग्न करणे", "—", "A2", "People", "Ich möchte heiraten."],
+["studieren", "श्टउडईरएन", "to study at university", "विद्यापीठात शिकणे", "—", "A2", "Education", "Ich möchte studieren."],
+["unterrichten", "उनटएररइखटएन", "to teach", "शिकवणे", "—", "A2", "Education", "Ich möchte unterrichten."],
+["wiederholen", "वईडएरहओलएन", "to repeat", "पुनरावृत्ती करणे", "—", "A2", "Education", "Ich möchte wiederholen."],
+["übersetzen", "यूबएरज़एत्सएन", "to translate", "भाषांतर करणे", "—", "A2", "Language", "Ich möchte übersetzen."],
+["buchstabieren", "बउखश्टआबईरएन", "to spell", "अक्षरे सांगणे", "—", "A1", "Language", "Ich möchte buchstabieren."],
+["atmen", "आटमएन", "to breathe", "श्वास घेणे", "—", "A2", "Health", "Ich möchte atmen."],
+["fühlen", "फयूहलएन", "to feel", "जाणवणे", "—", "A2", "Health", "Ich möchte fühlen."],
+["wehtun", "वएहटउन", "to hurt", "दुखणे", "—", "A2", "Health", "Ich möchte wehtun."],
+["untersuchen", "उनटएरज़उखएन", "to examine", "तपासणी करणे", "—", "B1", "Health", "Ich möchte untersuchen."],
+["heilen", "हआयलएन", "to heal", "बरे करणे", "—", "B1", "Health", "Ich möchte heilen."],
+["schützen", "शयूत्सएन", "to protect", "संरक्षण करणे", "—", "B1", "Health", "Ich möchte schützen."],
+["geboren", "गएबओरएन", "born", "जन्मलेला", "—", "A1", "People", "Ich möchte geboren."],
+["alt", "आलट", "old", "वृद्ध / जुना", "—", "A1", "Adjectives", "Ich möchte alt."],
+["jung", "यउनग", "young", "तरुण", "—", "A1", "Adjectives", "Ich möchte jung."],
+["neu", "नऑय", "new", "नवीन", "—", "A1", "Adjectives", "Ich möchte neu."],
+["modern", "मओडएरन", "modern", "आधुनिक", "—", "A2", "Adjectives", "Ich möchte modern."],
+["schön", "शओन", "beautiful", "सुंदर", "—", "A1", "Adjectives", "Ich möchte schön."],
+["hässlich", "हएज़ज़लइख", "ugly", "कुरूप", "—", "A2", "Adjectives", "Ich möchte hässlich."],
+["groß", "गरओस", "big/tall", "मोठा / उंच", "—", "A1", "Adjectives", "Ich möchte groß."],
+["klein", "कलआयन", "small", "लहान", "—", "A1", "Adjectives", "Ich möchte klein."],
+["lang", "लआनग", "long", "लांब", "—", "A1", "Adjectives", "Ich möchte lang."],
+["kurz", "कउरत्स", "short", "लहान / आखूड", "—", "A1", "Adjectives", "Ich möchte kurz."],
+["breit", "बरआयट", "wide", "रुंद", "—", "A2", "Adjectives", "Ich möchte breit."],
+["eng", "एनग", "narrow", "अरुंद", "—", "A2", "Adjectives", "Ich möchte eng."],
+["hoch", "हओख", "high", "उंच", "—", "A1", "Adjectives", "Ich möchte hoch."],
+["niedrig", "नईडरइग", "low", "कमी / ठेंगणा", "—", "A2", "Adjectives", "Ich möchte niedrig."],
+["tief", "टईफ", "deep", "खोल", "—", "A2", "Adjectives", "Ich möchte tief."],
+["leicht", "लआयखट", "light/easy", "हलका / सोपा", "—", "A1", "Adjectives", "Ich möchte leicht."],
+["schwer", "शवएर", "heavy/difficult", "जड / कठीण", "—", "A1", "Adjectives", "Ich möchte schwer."],
+["stark", "श्टआरक", "strong", "मजबूत", "—", "A1", "Adjectives", "Ich möchte stark."],
+["schwach", "शवआख", "weak", "कमकुवत", "—", "A2", "Adjectives", "Ich möchte schwach."],
+["warm", "वआरम", "warm", "कोमट / उबदार", "—", "A1", "Adjectives", "Ich möchte warm."],
+["kalt", "कआलट", "cold", "थंड", "—", "A1", "Adjectives", "Ich möchte kalt."],
+["heiß", "हआयस", "hot", "गरम", "—", "A1", "Adjectives", "Ich möchte heiß."],
+["kühl", "कयूहल", "cool", "गार", "—", "A2", "Adjectives", "Ich möchte kühl."],
+["sauber", "ज़आउबएर", "clean", "स्वच्छ", "—", "A1", "Adjectives", "Ich möchte sauber."],
+["schmutzig", "शमउत्सइग", "dirty", "घाणेरडा", "—", "A1", "Adjectives", "Ich möchte schmutzig."],
+["wach", "वआख", "awake", "जागा", "—", "A2", "Adjectives", "Ich möchte wach."],
+["glücklich", "गलयूकलइख", "happy", "आनंदी", "—", "A1", "Adjectives", "Ich möchte glücklich."],
+["traurig", "टरआउरइग", "sad", "दुःखी", "—", "A1", "Adjectives", "Ich möchte traurig."],
+["nett", "नएटट", "nice", "छान / प्रेमळ", "—", "A1", "Adjectives", "Ich möchte nett."],
+["höflich", "हओफलइख", "polite", "सभ्य", "—", "A2", "Adjectives", "Ich möchte höflich."],
+["ehrlich", "एहरलइख", "honest", "प्रामाणिक", "—", "A2", "Adjectives", "Ich möchte ehrlich."],
+["richtig", "रइखटइग", "correct", "बरोबर", "—", "A1", "Adjectives", "Ich möchte richtig."],
+["falsch", "फआलश", "wrong", "चुकीचा", "—", "A1", "Adjectives", "Ich möchte falsch."],
+["unmöglich", "उनमओगलइख", "impossible", "अशक्य", "—", "A2", "Adjectives", "Ich möchte unmöglich."],
+["fertig", "फएरटइग", "finished/ready", "तयार", "—", "A1", "Adjectives", "Ich möchte fertig."],
+["frei", "फरआय", "free", "मोकळा / विनामूल्य", "—", "A1", "Adjectives", "Ich möchte frei."],
+["besetzt", "बएज़एत्सट", "occupied", "व्यापलेला", "—", "A2", "Adjectives", "Ich möchte besetzt."],
+["reich", "रआयख", "rich", "श्रीमंत", "—", "A2", "Adjectives", "Ich möchte reich."],
+["arm", "आरम", "poor", "गरीब", "—", "A2", "Adjectives", "Ich möchte arm."],
+["voll", "फओलल", "full", "भरलेला", "—", "A1", "Adjectives", "Ich möchte voll."],
+["leer", "लएएर", "empty", "रिकामा", "—", "A1", "Adjectives", "Ich möchte leer."],
+["offen", "ओफफएन", "open", "उघडा", "—", "A1", "Adjectives", "Ich möchte offen."],
+["geschlossen", "गएशलओज़ज़एन", "closed", "बंद", "—", "A1", "Adjectives", "Ich möchte geschlossen."],
+["laut", "लआउट", "loud", "मोठ्या आवाजाचा", "—", "A1", "Adjectives", "Ich möchte laut."],
+["leise", "लआयज़ए", "quiet", "हळू आवाजाचा", "—", "A1", "Adjectives", "Ich möchte leise."],
+["hell", "हएलल", "bright", "प्रकाशमान", "—", "A1", "Adjectives", "Ich möchte hell."],
+["dunkel", "डउनकएल", "dark", "अंधारमय", "—", "A1", "Adjectives", "Ich möchte dunkel."],
+["süß", "ज़यूस", "sweet", "गोड", "—", "A1", "Adjectives", "Ich möchte süß."],
+["sauer", "ज़आउएर", "sour", "आंबट", "—", "A1", "Adjectives", "Ich möchte sauer."],
+["salzig", "ज़आलत्सइग", "salty", "खारट", "—", "A2", "Adjectives", "Ich möchte salzig."],
+["bitter", "बइटटएर", "bitter", "कडू", "—", "A2", "Adjectives", "Ich möchte bitter."],
+["frisch", "फरइश", "fresh", "ताजा", "—", "A1", "Adjectives", "Ich möchte frisch."],
+["trocken", "टरओकएन", "dry", "कोरडा", "—", "A1", "Adjectives", "Ich möchte trocken."],
+["nass", "नआज़ज़", "wet", "ओला", "—", "A1", "Adjectives", "Ich möchte nass."],
+["gefährlich", "गएफएहरलइख", "dangerous", "धोकादायक", "—", "A2", "Adjectives", "Ich möchte gefährlich."],
+["sicher", "ज़इखएर", "safe/sure", "सुरक्षित / निश्चित", "—", "A2", "Adjectives", "Ich möchte sicher."],
+["interessant", "इनटएरएज़ज़आनट", "interesting", "मनोरंजक", "—", "A1", "Adjectives", "Ich möchte interessant."],
+["langweilig", "लआनगवआयलइग", "boring", "कंटाळवाणा", "—", "A1", "Adjectives", "Ich möchte langweilig."],
+["bekannt", "बएकआननट", "known/famous", "प्रसिद्ध / परिचित", "—", "A2", "Adjectives", "Ich möchte bekannt."],
+["berühmt", "बएरयूहमट", "famous", "नामांकित", "—", "A2", "Adjectives", "Ich möchte berühmt."],
+["bequem", "बएक्वएम", "comfortable", "आरामदायक", "—", "A1", "Adjectives", "Ich möchte bequem."],
+["praktisch", "परआकटइश", "practical", "व्यावहारिक", "—", "A2", "Adjectives", "Ich möchte praktisch."],
+["nützlich", "नयूत्सलइख", "useful", "उपयुक्त", "—", "A2", "Adjectives", "Ich möchte nützlich."],
+["gemeinsam", "गएमआयनज़आम", "together/shared", "एकत्र / सामायिक", "—", "A2", "Adjectives", "Ich möchte gemeinsam."],
+["besonders", "बएज़ओनडएरज़", "special", "विशेष", "—", "A2", "Adjectives", "Ich möchte besonders."],
+["normal", "नओरमआल", "normal", "सामान्य", "—", "A1", "Adjectives", "Ich möchte normal."],
+["plötzlich", "पलओत्सलइख", "sudden", "अचानक", "—", "A2", "Adjectives", "Ich möchte plötzlich."],
+["natürlich", "नआटयूरलइख", "naturally/of course", "अर्थात / नैसर्गिकरीत्या", "—", "A1", "Adverbs", "Ich möchte natürlich."],
+["wirklich", "वइरकलइख", "really", "खरोखर", "—", "A1", "Adverbs", "Ich möchte wirklich."],
+["genau", "गएनआउ", "exactly", "अगदी / अचूक", "—", "A1", "Adverbs", "Ich möchte genau."],
+["ungefähr", "उनगएफएहर", "approximately", "अंदाजे", "—", "A2", "Adverbs", "Ich möchte ungefähr."],
+["selten", "ज़एलटएन", "rarely", "क्वचित", "—", "A2", "Adverbs", "Ich möchte selten."],
+["sofort", "ज़ओफओरट", "immediately", "लगेच", "—", "A1", "Adverbs", "Ich möchte sofort."],
+["später", "श्पएटएर", "later", "नंतर", "—", "A1", "Adverbs", "Ich möchte später."],
+["früher", "फरयूहएर", "earlier", "पूर्वी", "—", "A2", "Adverbs", "Ich möchte früher."],
+["jetzt", "यएत्सट", "now", "आत्ता", "—", "A1", "Time", "Ich möchte jetzt."],
+["damals", "डआमआलज़", "at that time", "त्या वेळी", "—", "A2", "Time", "Ich möchte damals."],
+["hier", "हईर", "here", "इथे", "—", "A1", "Places", "Ich möchte hier."],
+["dort", "डओरट", "there", "तिथे", "—", "A1", "Places", "Ich möchte dort."],
+["drinnen", "डरइननएन", "inside", "आत", "—", "A2", "Places", "Ich möchte drinnen."],
+["draußen", "डरआउसएन", "outside", "बाहेर", "—", "A2", "Places", "Ich möchte draußen."],
+["oben", "ओबएन", "above/upstairs", "वर", "—", "A1", "Places", "Ich möchte oben."],
+["unten", "उनटएन", "below/downstairs", "खाली", "—", "A1", "Places", "Ich möchte unten."],
+["zurück", "त्सउरयूक", "back", "मागे / परत", "—", "A1", "Directions", "Ich möchte zurück."],
+["voneinander", "फओनआयनआनडएर", "from each other", "एकमेकांपासून", "—", "B1", "Adverbs", "Ich möchte voneinander."],
+["außerdem", "आउसएरडएम", "besides", "याशिवाय", "—", "B1", "Adverbs", "Ich möchte außerdem."],
+["während", "वएहरएनड", "during/while", "दरम्यान", "—", "B1", "Adverbs", "Ich möchte während."],
+["obwohl", "ओबवओहल", "although", "जरी", "—", "B1", "Adverbs", "Ich möchte obwohl."],
+["wenn", "वएनन", "if/when", "जर / जेव्हा", "—", "A2", "Adverbs", "Ich möchte wenn."],
+["weil", "वआयल", "because", "कारण", "—", "A2", "Adverbs", "Ich möchte weil."],
+["dass", "डआज़ज़", "that (conjunction)", "की", "—", "A2", "Adverbs", "Ich möchte dass."],
+["aber", "आबएर", "but", "पण", "—", "A1", "Adverbs", "Ich möchte aber."],
+["oder", "ओडएर", "or", "किंवा", "—", "A1", "Adverbs", "Ich möchte oder."],
+["sondern", "ज़ओनडएरन", "but rather", "तर", "—", "A2", "Adverbs", "Ich möchte sondern."],
+["und", "उनड", "and", "आणि", "—", "A1", "Adverbs", "Ich möchte und."],
+["auch", "आउख", "also", "सुद्धा", "—", "A1", "Adverbs", "Ich möchte auch."],
+["nur", "नउर", "only", "फक्त", "—", "A1", "Adverbs", "Ich möchte nur."],
+["schon", "शओन", "already", "आधीच", "—", "A1", "Adverbs", "Ich möchte schon."],
+["noch", "नओख", "still/yet", "अजून", "—", "A1", "Adverbs", "Ich möchte noch."],
+["erst", "एरश्ट", "only/not until", "तेव्हाच / फक्त", "—", "A2", "Adverbs", "Ich möchte erst."],
+["fast", "फआश्ट", "almost", "जवळजवळ", "—", "A1", "Adverbs", "Ich möchte fast."],
+["genug", "गएनउग", "enough", "पुरेसे", "—", "A1", "Adverbs", "Ich möchte genug."],
+["sehr", "ज़एहर", "very", "खूप", "—", "A1", "Adverbs", "Ich möchte sehr."],
+["mehr", "मएहर", "more", "अधिक", "—", "A1", "Adverbs", "Ich möchte mehr."],
+["weniger", "वएनइगएर", "less", "कमी", "—", "A1", "Adverbs", "Ich möchte weniger."],
+["zusätzlich", "त्सउज़एत्सलइख", "additional", "अतिरिक्त", "—", "A2", "Adverbs", "Ich möchte zusätzlich."],
+["der Fahrplan", "डएर फआहरपलआन", "timetable", "वेळापत्रक", "—", "A2", "Travel", "Der fahrplan ist wichtig."],
+["der Bus", "डएर बउज़", "bus", "बस", "—", "A1", "Travel", "Der bus ist wichtig."],
+["die Straßenbahn", "डई श्टरआसएनबआहन", "tram", "ट्राम", "—", "A2", "Travel", "Die straßenbahn ist wichtig."],
+["das Flugzeug", "डआज़ फलउगत्सऑयग", "airplane", "विमान", "—", "A1", "Travel", "Das flugzeug ist wichtig."],
+["das Auto", "डआज़ आउटओ", "car", "कार", "—", "A1", "Travel", "Das auto ist wichtig."],
+["das Motorrad", "डआज़ मओटओररआड", "motorcycle", "मोटारसायकल", "—", "A2", "Travel", "Das motorrad ist wichtig."],
+["die Ampel", "डई आमपएल", "traffic light", "वाहतूक दिवा", "—", "A1", "Travel", "Die ampel ist wichtig."],
+["die Brücke", "डई बरयूकए", "bridge", "पूल", "—", "A1", "Places", "Die brücke ist wichtig."],
+["der Weg", "डएर वएग", "way/path", "मार्ग", "—", "A1", "Places", "Der weg ist wichtig."],
+["der Urlaub", "डएर उरलआउब", "holiday", "सुट्टी", "—", "A1", "Travel", "Der urlaub ist wichtig."],
+["das Hotel", "डआज़ हओटएल", "hotel", "हॉटेल", "—", "A1", "Travel", "Das hotel ist wichtig."],
+["die Reservierung", "डई रएज़एरफईरउनग", "reservation", "आरक्षण", "—", "A2", "Travel", "Die reservierung ist wichtig."],
+["der Pass", "डएर पआज़ज़", "passport", "पासपोर्ट", "—", "A1", "Travel", "Der pass ist wichtig."],
+["der Koffer", "डएर कओफफएर", "suitcase", "सूटकेस", "—", "A1", "Travel", "Der koffer ist wichtig."],
+["die Karte", "डई कआरटए", "map/card", "नकाशा / कार्ड", "—", "A1", "Travel", "Die karte ist wichtig."],
+["der Eingang", "डएर आयनगआनग", "entrance", "प्रवेशद्वार", "—", "A2", "Places", "Der eingang ist wichtig."],
+["der Ausgang", "डएर आउज़गआनग", "exit", "बाहेर पडण्याचा मार्ग", "—", "A2", "Places", "Der ausgang ist wichtig."],
+["die Richtung", "डई रइखटउनग", "direction", "दिशा", "—", "A2", "Directions", "Die richtung ist wichtig."],
+["die Entfernung", "डई एनटफएरनउनग", "distance", "अंतर", "—", "A2", "Directions", "Die entfernung ist wichtig."],
+["das Zentrum", "डआज़ त्सएनटरउम", "centre", "मध्यवर्ती भाग", "—", "A1", "Places", "Das zentrum ist wichtig."],
+["die Stadt", "डई श्टआडट", "city", "शहर", "—", "A1", "Places", "Die stadt ist wichtig."],
+["das Dorf", "डआज़ डओरफ", "village", "गाव", "—", "A1", "Places", "Das dorf ist wichtig."],
+["das Land", "डआज़ लआनड", "country", "देश", "—", "A1", "Places", "Das land ist wichtig."],
+["die Welt", "डई वएलट", "world", "जग", "—", "A1", "Places", "Die welt ist wichtig."],
+["die Umgebung", "डई उमगएबउनग", "surroundings", "परिसर", "—", "A2", "Places", "Die umgebung ist wichtig."],
+["der Laden", "डएर लआडएन", "shop", "दुकान", "—", "A1", "Shopping", "Der laden ist wichtig."],
+["der Rabatt", "डएर रआबआटट", "discount", "सवलत", "—", "A2", "Shopping", "Der rabatt ist wichtig."],
+["das Kleid", "डआज़ कलआयड", "dress", "ड्रेस", "—", "A1", "Clothing", "Das kleid ist wichtig."],
+["die Hose", "डई हओज़ए", "trousers", "पँट", "—", "A1", "Clothing", "Die hose ist wichtig."],
+["das Hemd", "डआज़ हएमड", "shirt", "शर्ट", "—", "A1", "Clothing", "Das hemd ist wichtig."],
+["die Jacke", "डई यआकए", "jacket", "जॅकेट", "—", "A1", "Clothing", "Die jacke ist wichtig."],
+["der Mantel", "डएर मआनटएल", "coat", "कोट", "—", "A1", "Clothing", "Der mantel ist wichtig."],
+["der Schuh", "डएर शउह", "shoe", "बूट", "—", "A1", "Clothing", "Der schuh ist wichtig."],
+["die Socke", "डई ज़ओकए", "sock", "मोजा", "—", "A1", "Clothing", "Die socke ist wichtig."],
+["der Hut", "डएर हउट", "hat", "टोपी", "—", "A1", "Clothing", "Der hut ist wichtig."],
+["die Mütze", "डई मयूत्सए", "cap", "कॅप", "—", "A2", "Clothing", "Die mütze ist wichtig."],
+["der Gürtel", "डएर गयूरटएल", "belt", "पट्टा", "—", "A2", "Clothing", "Der gürtel ist wichtig."],
+["der Knopf", "डएर कनओपफ", "button", "बटण", "—", "A2", "Clothing", "Der knopf ist wichtig."],
+["die Minute", "डई मइनउटए", "minute", "मिनिट", "—", "A1", "Time", "Die minute ist wichtig."],
+["die Stunde", "डई श्टउनडए", "hour", "तास", "—", "A1", "Time", "Die stunde ist wichtig."],
+["der Mittag", "डएर मइटटआग", "midday", "दुपार", "—", "A1", "Time", "Der mittag ist wichtig."],
+["der Abend", "डएर आबएनड", "evening", "संध्याकाळ", "—", "A1", "Time", "Der abend ist wichtig."],
+["das Wochenende", "डआज़ वओखएनएनडए", "weekend", "आठवड्याचा शेवट", "—", "A1", "Time", "Das wochenende ist wichtig."],
+["der Kalender", "डएर कआलएनडएर", "calendar", "दिनदर्शिका", "—", "A1", "Time", "Der kalender ist wichtig."],
+["der Geburtstag", "डएर गएबउरटश्टआग", "birthday", "वाढदिवस", "—", "A1", "People", "Der geburtstag ist wichtig."],
+["das Datum", "डआज़ डआटउम", "date", "तारीख", "—", "A1", "Time", "Das datum ist wichtig."],
+["die Vergangenheit", "डई फएरगआनगएनहआयट", "past", "भूतकाळ", "—", "A2", "Time", "Die vergangenheit ist wichtig."],
+["die Zukunft", "डई त्सउकउनफट", "future", "भविष्य", "—", "A2", "Time", "Die zukunft ist wichtig."],
+["die Gegenwart", "डई गएगएनवआरट", "present", "वर्तमानकाळ", "—", "B1", "Time", "Die gegenwart ist wichtig."],
+["der Vater", "डएर फआटएर", "father", "वडील", "—", "A1", "People", "Der vater ist wichtig."],
+["die Mutter", "डई मउटटएर", "mother", "आई", "—", "A1", "People", "Die mutter ist wichtig."],
+["der Sohn", "डएर ज़ओहन", "son", "मुलगा", "—", "A1", "People", "Der sohn ist wichtig."],
+["die Tochter", "डई टओखटएर", "daughter", "मुलगी", "—", "A1", "People", "Die tochter ist wichtig."],
+["der Großvater", "डएर गरओसफआटएर", "grandfather", "आजोबा", "—", "A1", "People", "Der großvater ist wichtig."],
+["die Großmutter", "डई गरओसमउटटएर", "grandmother", "आजी", "—", "A1", "People", "Die großmutter ist wichtig."],
+["die Nachbarin", "डई नआखबआरइन", "female neighbour", "शेजारीण", "—", "A2", "People", "Die nachbarin ist wichtig."],
+["der Kollege", "डएर कओललएगए", "colleague", "सहकारी", "—", "A2", "Work", "Der kollege ist wichtig."],
+["der Chef", "डएर खएफ", "boss", "मालक / वरिष्ठ", "—", "A2", "Work", "Der chef ist wichtig."],
+["die Chefin", "डई खएफइन", "female boss", "महिला वरिष्ठ", "—", "A2", "Work", "Die chefin ist wichtig."],
+["der Kunde", "डएर कउनडए", "customer", "ग्राहक", "—", "A1", "Shopping", "Der kunde ist wichtig."],
+["die Kundin", "डई कउनडइन", "female customer", "महिला ग्राहक", "—", "A2", "Shopping", "Die kundin ist wichtig."],
+["die Ärztin", "डई एरत्सटइन", "female doctor", "महिला डॉक्टर", "—", "A1", "Health", "Die ärztin ist wichtig."],
+["der Patient", "डएर पआटईनट", "patient", "रुग्ण", "—", "A2", "Health", "Der patient ist wichtig."],
+["die Patientin", "डई पआटईनटइन", "female patient", "महिला रुग्ण", "—", "A2", "Health", "Die patientin ist wichtig."],
+["das Krankenhaus", "डआज़ करआनकएनहआउज़", "hospital", "रुग्णालय", "—", "A1", "Health", "Das krankenhaus ist wichtig."],
+["die Krankheit", "डई करआनकहआयट", "illness", "आजार", "—", "A1", "Health", "Die krankheit ist wichtig."],
+["das Fieber", "डआज़ फईबएर", "fever", "ताप", "—", "A1", "Health", "Das fieber ist wichtig."],
+["der Husten", "डएर हउश्टएन", "cough", "खोकला", "—", "A1", "Health", "Der husten ist wichtig."],
+["das Gesicht", "डआज़ गएज़इखट", "face", "चेहरा", "—", "A1", "Body", "Das gesicht ist wichtig."],
+["das Auge", "डआज़ आउगए", "eye", "डोळा", "—", "A1", "Body", "Das auge ist wichtig."],
+["das Ohr", "डआज़ ओहर", "ear", "कान", "—", "A1", "Body", "Das ohr ist wichtig."],
+["die Nase", "डई नआज़ए", "nose", "नाक", "—", "A1", "Body", "Die nase ist wichtig."],
+["der Mund", "डएर मउनड", "mouth", "तोंड", "—", "A1", "Body", "Der mund ist wichtig."],
+["der Zahn", "डएर त्सआहन", "tooth", "दात", "—", "A1", "Body", "Der zahn ist wichtig."],
+["der Hals", "डएर हआलज़", "neck/throat", "मान / घसा", "—", "A1", "Body", "Der hals ist wichtig."],
+["die Schulter", "डई शउलटएर", "shoulder", "खांदा", "—", "A2", "Body", "Die schulter ist wichtig."],
+["der Arm", "डएर आरम", "arm", "हात", "—", "A1", "Body", "Der arm ist wichtig."],
+["die Hand", "डई हआनड", "hand", "हाताचा पंजा", "—", "A1", "Body", "Die hand ist wichtig."],
+["der Finger", "डएर फइनगएर", "finger", "बोट", "—", "A1", "Body", "Der finger ist wichtig."],
+["der Bauch", "डएर बआउख", "belly", "पोट", "—", "A1", "Body", "Der bauch ist wichtig."],
+["der Rücken", "डएर रयूकएन", "back", "पाठ", "—", "A1", "Body", "Der rücken ist wichtig."],
+["das Bein", "डआज़ बआयन", "leg", "पाय", "—", "A1", "Body", "Das bein ist wichtig."],
+["das Knie", "डआज़ कनई", "knee", "गुडघा", "—", "A1", "Body", "Das knie ist wichtig."],
+["der Fuß", "डएर फउस", "foot", "पाऊल", "—", "A1", "Body", "Der fuß ist wichtig."],
+["das Blut", "डआज़ बलउट", "blood", "रक्त", "—", "A2", "Health", "Das blut ist wichtig."],
+["die Haut", "डई हआउट", "skin", "त्वचा", "—", "A2", "Body", "Die haut ist wichtig."],
+["das Haar", "डआज़ हआआर", "hair", "केस", "—", "A1", "Body", "Das haar ist wichtig."],
+["das Gemüse", "डआज़ गएमयूज़ए", "vegetables", "भाज्या", "—", "A1", "Food", "Das gemüse ist wichtig."],
+["das Obst", "डआज़ ओबश्ट", "fruit", "फळे", "—", "A1", "Food", "Das obst ist wichtig."],
+["die Orange", "डई ओरआनगए", "orange", "संत्रे", "—", "A1", "Food", "Die orange ist wichtig."],
+["die Zitrone", "डई त्सइटरओनए", "lemon", "लिंबू", "—", "A1", "Food", "Die zitrone ist wichtig."],
+["die Kartoffel", "डई कआरटओफफएल", "potato", "बटाटा", "—", "A1", "Food", "Die kartoffel ist wichtig."],
+["die Tomate", "डई टओमआटए", "tomato", "टोमॅटो", "—", "A1", "Food", "Die tomate ist wichtig."],
+["die Zwiebel", "डई त्सवईबएल", "onion", "कांदा", "—", "A1", "Food", "Die zwiebel ist wichtig."],
+["das Fleisch", "डआज़ फलआयश", "meat", "मांस", "—", "A1", "Food", "Das fleisch ist wichtig."],
+["der Fisch", "डएर फइश", "fish", "मासा", "—", "A1", "Food", "Der fisch ist wichtig."],
+["das Hähnchen", "डआज़ हएहनखएन", "chicken", "कोंबडीचे मांस", "—", "A1", "Food", "Das hähnchen ist wichtig."],
+["die Suppe", "डई ज़उपपए", "soup", "सूप", "—", "A1", "Food", "Die suppe ist wichtig."],
+["der Salat", "डएर ज़आलआट", "salad", "सलाड", "—", "A1", "Food", "Der salat ist wichtig."],
+["der Zucker", "डएर त्सउकएर", "sugar", "साखर", "—", "A1", "Food", "Der zucker ist wichtig."],
+["das Salz", "डआज़ ज़आलत्स", "salt", "मीठ", "—", "A1", "Food", "Das salz ist wichtig."],
+["der Pfeffer", "डएर पफएफफएर", "pepper", "मिरी", "—", "A2", "Food", "Der pfeffer ist wichtig."],
+["das Öl", "डआज़ ओल", "oil", "तेल", "—", "A1", "Food", "Das öl ist wichtig."],
+["der Saft", "डएर ज़आफट", "juice", "रस", "—", "A1", "Food", "Der saft ist wichtig."],
+["das Frühstück", "डआज़ फरयूहश्टयूक", "breakfast", "नाश्ता", "—", "A1", "Food", "Das frühstück ist wichtig."],
+["das Mittagessen", "डआज़ मइटटआगएज़ज़एन", "lunch", "दुपारचे जेवण", "—", "A1", "Food", "Das mittagessen ist wichtig."],
+["das Abendessen", "डआज़ आबएनडएज़ज़एन", "dinner", "रात्रीचे जेवण", "—", "A1", "Food", "Das abendessen ist wichtig."],
+["der Hunger", "डएर हउनगएर", "hunger", "भूक", "—", "A1", "Food", "Der hunger ist wichtig."],
+["der Durst", "डएर डउरश्ट", "thirst", "तहान", "—", "A1", "Food", "Der durst ist wichtig."],
+["die Sonne", "डई ज़ओननए", "sun", "सूर्य", "—", "A1", "Nature", "Die sonne ist wichtig."],
+["der Mond", "डएर मओनड", "moon", "चंद्र", "—", "A1", "Nature", "Der mond ist wichtig."],
+["der Stern", "डएर श्टएरन", "star", "तारा", "—", "A1", "Nature", "Der stern ist wichtig."],
+["der Himmel", "डएर हइममएल", "sky", "आकाश", "—", "A1", "Nature", "Der himmel ist wichtig."],
+["die Wolke", "डई वओलकए", "cloud", "ढग", "—", "A1", "Nature", "Die wolke ist wichtig."],
+["der Regen", "डएर रएगएन", "rain", "पाऊस", "—", "A1", "Nature", "Der regen ist wichtig."],
+["der Schnee", "डएर शनएए", "snow", "बर्फवृष्टी", "—", "A1", "Nature", "Der schnee ist wichtig."],
+["der Wind", "डएर वइनड", "wind", "वारा", "—", "A1", "Nature", "Der wind ist wichtig."],
+["der Sturm", "डएर श्टउरम", "storm", "वादळ", "—", "A2", "Nature", "Der sturm ist wichtig."],
+["der Nebel", "डएर नएबएल", "fog", "धुके", "—", "A2", "Nature", "Der nebel ist wichtig."],
+["die Luft", "डई लउफट", "air", "हवा", "—", "A1", "Nature", "Die luft ist wichtig."],
+["das Feuer", "डआज़ फऑयएर", "fire", "आग", "—", "A1", "Nature", "Das feuer ist wichtig."],
+["die Erde", "डई एरडए", "earth/soil", "पृथ्वी / माती", "—", "A1", "Nature", "Die erde ist wichtig."],
+["das Gras", "डआज़ गरआज़", "grass", "गवत", "—", "A1", "Nature", "Das gras ist wichtig."],
+["der Wald", "डएर वआलड", "forest", "जंगल", "—", "A1", "Nature", "Der wald ist wichtig."],
+["der Berg", "डएर बएरग", "mountain", "डोंगर", "—", "A1", "Nature", "Der berg ist wichtig."],
+["der Fluss", "डएर फलउज़ज़", "river", "नदी", "—", "A1", "Nature", "Der fluss ist wichtig."],
+["der See", "डएर ज़एए", "lake", "तळे", "—", "A1", "Nature", "Der see ist wichtig."],
+["das Meer", "डआज़ मएएर", "sea", "समुद्र", "—", "A1", "Nature", "Das meer ist wichtig."],
+["der Strand", "डएर श्टरआनड", "beach", "समुद्रकिनारा", "—", "A1", "Nature", "Der strand ist wichtig."],
+["die Insel", "डई इनज़एल", "island", "बेट", "—", "A2", "Nature", "Die insel ist wichtig."],
+["das Tier", "डआज़ टईर", "animal", "प्राणी", "—", "A1", "Nature", "Das tier ist wichtig."],
+["der Hund", "डएर हउनड", "dog", "कुत्रा", "—", "A1", "Animals", "Der hund ist wichtig."]];
+const $=id=>document.getElementById(id);
+let mode="match", round=1, words=[], leftPick=null,rightPick=null,matched=new Set(),score=0,flashIndex=0,quizIndex=0,quizAnswered=false;
+let progress=JSON.parse(localStorage.getItem("deutschMatchProgress")||"{}");
+const stats=()=>Object.values(progress);
+function save(){localStorage.setItem("deutschMatchProgress",JSON.stringify(progress));updateStats()}
+function updateStats(){$("learned").textContent=stats().filter(x=>x.seen).length;$("correct").textContent=stats().reduce((a,x)=>a+(x.correct||0),0);$("due").textContent=stats().filter(x=>x.due).length}
+function fillThemes(){
+ // Show only themes that contain words at the selected CEFR level.
+ // This prevents impossible combinations such as A2 + Food when Food is A1.
+ let level=$("level").value, current=$("theme").value;
+ let themes=[...new Set(WORDS.filter(w=>level==="all"||w[5]===level).map(w=>w[6]))].sort();
+ $("theme").innerHTML='<option value="all">All themes</option>'+themes.map(t=>`<option value="${t}">${t}</option>`).join("");
+ $("theme").value=themes.includes(current)?current:"all";
+}
+function eligible(){let l=$("level").value,t=$("theme").value;return WORDS.filter(w=>(l==="all"||w[5]===l)&&(t==="all"||w[6]===t))}
+function pickRound(){let pool=eligible(),sel=$("selection").value;let due=pool.filter(w=>{let p=progress[w[0]];return p&&p.due});let unseen=pool.filter(w=>!progress[w[0]]?.seen);
+ if(sel==="theme"&&$("theme").value==="all"){let themes=[...new Set(pool.map(w=>w[6]))];let th=themes[Math.floor(Math.random()*themes.length)];pool=pool.filter(w=>w[6]===th);due=due.filter(w=>w[6]===th);unseen=unseen.filter(w=>w[6]===th)}
+ let chosen=[];if(sel==="adaptive"){chosen.push(...shuffle(due).slice(0,5));chosen.push(...shuffle(unseen.filter(w=>!chosen.includes(w))).slice(0,5))}
+ if(sel==="random")chosen=shuffle(pool).slice(0,10);
+ if(sel==="theme")chosen=[...shuffle(due).slice(0,5),...shuffle(unseen.filter(w=>!chosen.includes(w))).slice(0,5)];
+ if(chosen.length<10)chosen.push(...shuffle(pool.filter(w=>!chosen.includes(w))).slice(0,10-chosen.length));
+ return shuffle(chosen.slice(0,10));
+}
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function reveal(w){$("detail").innerHTML=`<div class="detail-word">${w[0]} <span style="font-size:13px;color:#64748b">${w[5]} · ${w[6]}</span></div><div><span class="detail-label">मराठी उच्चार:</span> <span class="detail-pron">${w[1]}</span></div><div><span class="detail-label">English:</span> <b>${w[2]}</b> &nbsp; <span class="detail-label">मराठी:</span> <b>${w[3]}</b></div><div><span class="detail-label">Plural / verb form:</span> ${w[4]}</div><div><span class="detail-label">Example:</span> <span class="detail-example">${w[7]}</span></div>`}
+function start(){if(eligible().length===0){$("theme").value="all";}words=pickRound();matched=new Set();leftPick=rightPick=null;score=0;flashIndex=0;quizIndex=0;quizAnswered=false;$("feedback").textContent="";$("roundLabel").textContent="Round "+round;$("scoreLabel").textContent="0 / "+words.length+" pairs";$("bar").style.width="0%";render()}
+function mark(w,ok){let p=progress[w[0]]||{seen:false,correct:0,wrong:0};p.seen=true;if(ok){p.correct=(p.correct||0)+1;p.due=false}else{p.wrong=(p.wrong||0)+1;p.due=true}progress[w[0]]=p;save()}
+function speakGerman(text){
+ if(!("speechSynthesis" in window)||!("SpeechSynthesisUtterance" in window))return;
+ try{
+  window.speechSynthesis.cancel();
+  const utterance=new SpeechSynthesisUtterance(text);
+  utterance.lang="de-DE";
+  utterance.rate=0.86;
+  utterance.pitch=1;
+  window.speechSynthesis.speak(utterance);
+ }catch(e){/* Speech is optional when the browser has no German voice. */}
+}
+function render(){document.querySelectorAll("[data-mode]").forEach(b=>{b.className=b.dataset.mode===mode?"active":"secondary"});if(mode==="match")renderMatch();if(mode==="flash")renderFlash();if(mode==="quiz")renderQuiz()}
+function playWrongBeep(){
+ // Resume the audio context from the actual tap gesture (important on Android/Brave).
+ try{
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx)return;
+  const ctx=new AudioCtx();
+  const beep=()=>{
+   const osc=ctx.createOscillator(),gain=ctx.createGain();
+   osc.type="square";osc.frequency.setValueAtTime(620,ctx.currentTime);
+   gain.gain.setValueAtTime(0.0001,ctx.currentTime);
+   gain.gain.exponentialRampToValueAtTime(0.22,ctx.currentTime+0.012);
+   gain.gain.setValueAtTime(0.22,ctx.currentTime+0.085);
+   gain.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.16);
+   osc.connect(gain);gain.connect(ctx.destination);osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.17);
+   osc.onended=()=>ctx.close();
+  };
+  if(ctx.state==="suspended")ctx.resume().then(beep).catch(()=>ctx.close());else beep();
+ }catch(e){/* Audio is optional; matching remains usable if the browser blocks sound. */}
+}
+function renderMatch(){let m=$("meaning").value,L=shuffle(words),R=shuffle(words);$("game").innerHTML=`<div class="gamehead"><h2>Find the matching pairs</h2><p>Tap a German word, then its ${m==="en"?"English":"Marathi"} meaning.</p></div><div class="matchgrid"><div class="matchcol" id="left"></div><div class="matchcol" id="right"></div></div>`;
+ L.forEach(w=>{let b=document.createElement("button");b.className="tile";b.dataset.word=w[0];b.innerHTML=`<span class="word">${w[0]}</span><small>${w[1]}</small>`;b.onclick=()=>{if(matched.has(w[0]))return;speakGerman(w[0]);leftPick=w;reveal(w);document.querySelectorAll("#left .tile").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");checkPair()};$("left").append(b)});
+ R.forEach(w=>{let b=document.createElement("button");b.className="tile";b.dataset.word=w[0];b.innerHTML=`<span class="word">${w[m==="en"?2:3]}</span>`;b.onclick=()=>{if(matched.has(w[0]))return;rightPick=w;document.querySelectorAll("#right .tile").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");checkPair()};$("right").append(b)});
+}
+function checkPair(){
+ if(!leftPick||!rightPick)return;
+ const leftWord=leftPick[0],rightWord=rightPick[0];
+ if(leftWord===rightWord){
+  matched.add(leftWord);score++;mark(leftPick,true);
+  document.querySelector(`#left .tile[data-word="${CSS.escape(leftWord)}"]`).classList.add("done");
+  document.querySelector(`#right .tile[data-word="${CSS.escape(rightWord)}"]`).classList.add("done");
+  document.querySelectorAll(".selected").forEach(b=>b.classList.remove("selected"));
+  $("feedback").textContent="Richtig! ✓";$("feedback").className="feedback good";
+ }else{
+  mark(leftPick,false);playWrongBeep();
+  document.querySelectorAll(".selected").forEach(b=>{b.classList.remove("selected");b.classList.add("reject");setTimeout(()=>b.classList.remove("reject"),500)});
+  $("feedback").textContent="Not a match — listen for the beep and try again.";$("feedback").className="feedback bad";
+ }
+ $("scoreLabel").textContent=score+" / "+words.length+" pairs";$("bar").style.width=(score/words.length*100)+"%";
+ leftPick=rightPick=null;
+ if(score===words.length){$("feedback").textContent="Ausgezeichnet! All pairs matched. 🎉";$("feedback").className="feedback good"}
+}
+function renderFlash(){
+ let w=words[flashIndex%words.length];
+ $("detail").textContent="Press “Show meaning” when you are ready to reveal the translation and learning notes.";
+ $("game").innerHTML=`<div class="gamehead"><h2>Flashcards</h2><p>Card ${flashIndex+1} of ${words.length} · think of the meaning first</p></div>
+ <div class="cardword"><div class="de">${w[0]}</div><div class="pron">${w[1]}</div>
+ <button class="speak-btn word-speech" id="flashSpeak" type="button" aria-label="Hear German pronunciation">🔊 Listen</button>
+ <div id="flashMeaning" hidden><div class="meaning">${w[2]}</div><div>${w[3]}</div><div class="extra">Plural / verb form: ${w[4]}</div><div class="extra">${w[7]}</div></div></div>
+ <div class="actionrow"><button class="secondary" id="show">Show meaning</button><button class="primary" id="nextCard">Next →</button></div>`;
+ $("flashSpeak").onclick=()=>speakGerman(w[0]);
+ $("show").onclick=()=>{
+   $("flashMeaning").hidden=false;
+   reveal(w);
+   $("show").disabled=true;
+   $("show").textContent="Meaning shown ✓";
+ };
+ $("nextCard").onclick=()=>{flashIndex++;renderFlash()};
+ $("scoreLabel").textContent=(flashIndex%words.length)+" / "+words.length+" cards";
+ $("bar").style.width=((flashIndex%words.length)/words.length*100)+"%";
+}
+function renderQuiz(){
+ let w=words[quizIndex%words.length],m=$("meaning").value,idx=m==="en"?2:3;
+ let opts=shuffle([w,...shuffle(eligible().filter(x=>x[0]!==w[0])).slice(0,3)]);
+ quizAnswered=false;
+ $("detail").textContent="Choose the correct meaning to reveal the translation and learning notes.";
+ $("game").innerHTML=`<div class="gamehead"><h2>Quick quiz</h2><p>Choose the meaning of this German word · ${quizIndex+1} of ${words.length}</p></div>
+ <div class="cardword quizword"><div class="de">${w[0]}</div><div class="pron">${w[1]}</div>
+ <button class="speak-btn word-speech" id="quizSpeak" type="button" aria-label="Hear German pronunciation">🔊 Listen</button>
+ <div id="quizReveal" class="quiz-reveal" aria-live="polite"></div></div>
+ <div class="options" id="opts"></div>
+ <div id="quizActions" class="actionrow quiz-actions"><button class="primary" id="quizNext" disabled>Next question →</button></div>`;
+ $("quizSpeak").onclick=()=>speakGerman(w[0]);
+ opts.forEach(x=>{
+  let b=document.createElement("button");
+  b.textContent=x[idx];
+  b.onclick=()=>{
+   if(quizAnswered||b.disabled)return;
+   const ok=x[0]===w[0];
+   if(!ok){
+    b.classList.add("incorrect");
+    b.disabled=true;
+    playWrongBeep();
+    $("feedback").textContent="Not quite — try another answer.";
+    $("feedback").className="feedback bad";
+    mark(w,false);
+    return;
+   }
+   quizAnswered=true;
+   b.classList.add("correct");
+   document.querySelectorAll("#opts button").forEach(btn=>{btn.disabled=true});
+   mark(w,true);
+   const revealBox=$("quizReveal");
+   revealBox.innerHTML=`<div class="quiz-answer">${w[idx]}</div><div class="quiz-marathi">${w[3]}</div>`;
+   revealBox.classList.add("shown");
+   reveal(w);
+   $("feedback").textContent="Richtig! ✓";
+   $("feedback").className="feedback good";
+   $("scoreLabel").textContent=(quizIndex+1)+" / "+words.length+" questions";
+   $("bar").style.width=((quizIndex+1)/words.length*100)+"%";
+   $("quizNext").disabled=false;
+  };
+  $("opts").append(b);
+ });
+ $("quizNext").onclick=()=>{if(!quizAnswered)return;quizIndex++;renderQuiz()};
+ $("scoreLabel").textContent=quizIndex+" / "+words.length+" questions";
+ $("bar").style.width=(quizIndex/words.length*100)+"%";
+}document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;render()});
+$("next").onclick=()=>{round++;start()};$("reset").onclick=()=>{if(confirm("Clear all saved learning progress on this device?")){progress={};save();round=1;start()}};
+$("level").onchange=()=>{fillThemes();round=1;start()};
+["meaning","selection","theme"].forEach(id=>$(id).onchange=()=>{round=1;start()});
+fillThemes();updateStats();start();
+</script>
+</body>
+</html>
